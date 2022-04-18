@@ -1,7 +1,9 @@
 authlib==0.11
 flask==2.0.1
-flask_restful
 google-api-python-client
 google-auth
 virtualenv
 python-dotenv
+pymongo==3.10.1
+dnspython==2.2.0
+certifi
