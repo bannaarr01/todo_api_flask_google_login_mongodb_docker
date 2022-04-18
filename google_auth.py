@@ -21,15 +21,28 @@ AUTH_STATE_KEY = 'auth_state'
 
 app = flask.Blueprint('google_auth', __name__)
 
+#checking if user is logged-in
+def is_logged_in():
+    return True if AUTH_TOKEN_KEY in flask.session else False
+
+def unauthenticated():
+    unauth = {
+        "status": False,
+        "message": "Unauthenticated"
+    }
+    return jsonify(unauth)
+
 def build_credentials():
+    if not is_logged_in():
+        return unauthenticated()
     oauth2_tokens = flask.session[AUTH_TOKEN_KEY]
-    
     return google.oauth2.credentials.Credentials(
                 oauth2_tokens['access_token'],
                 refresh_token=oauth2_tokens['refresh_token'],
                 client_id=CLIENT_ID,
                 client_secret=CLIENT_SECRET,
                 token_url=AUTH_ACCESS_TOKEN_URL)
+
 
 #get logged in userInfo
 def get_user_info():
@@ -65,6 +78,7 @@ def login():
     flask.session.permanent = True
 
     return flask.redirect(url, code=302)
+
 
 @app.route('/google/auth')
 @no_cache
