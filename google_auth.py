@@ -26,22 +26,24 @@ def is_logged_in():
     return True if AUTH_TOKEN_KEY in flask.session else False
 
 def unauthenticated():
-    unauth = {
+    responseMsg = {
         "status": False,
         "message": "Unauthenticated"
     }
-    return jsonify(unauth)
+    return jsonify(responseMsg)
 
 def build_credentials():
     if not is_logged_in():
         return unauthenticated()
+
     oauth2_tokens = flask.session[AUTH_TOKEN_KEY]
+    
     return google.oauth2.credentials.Credentials(
                 oauth2_tokens['access_token'],
                 refresh_token=oauth2_tokens['refresh_token'],
                 client_id=CLIENT_ID,
                 client_secret=CLIENT_SECRET,
-                token_url=AUTH_ACCESS_TOKEN_URL)
+                token_uri=AUTH_ACCESS_TOKEN_URL)
 
 
 #get logged in userInfo
@@ -99,5 +101,17 @@ def google_auth_redirect():
                         authorization_response=flask.request.url)
 
     flask.session[AUTH_TOKEN_KEY] = oauth2_tokens
+    return jsonify(get_user_info())
 
-    return flask.redirect(BASE_URL, code=302)
+#logout
+@app.route('/google/logout')
+@no_cache
+def logout():
+    if is_logged_in():
+        flask.session.pop(AUTH_TOKEN_KEY, None)
+        flask.session.pop(AUTH_STATE_KEY, None)
+        responseMsg = {"status": True, "message": "You have successfully logged out!"}
+        return jsonify(responseMsg) 
+    else: 
+        return unauthenticated()  
+    
