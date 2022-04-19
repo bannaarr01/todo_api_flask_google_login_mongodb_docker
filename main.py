@@ -1,4 +1,4 @@
-from flask import Flask, jsonify,url_for
+from flask import Flask,jsonify,request
 import os
 import google_auth
 from pymongo import MongoClient
@@ -20,21 +20,45 @@ collection = db["tasks"]
 
 
 
-#get all Tasks, Auth User Only
-@app.route('/todo/tasks', methods = ['GET']) 
-def main():
-    if google_auth.is_logged_in():
-        data = []
-        for doc in collection.find():
-            doc['_id'] = str(doc['_id']) 
-            data.append(doc)
-        return jsonify(data)
+
+#add todo
+@app.route('/todo/add', methods = ['POST']) 
+def add_a_task():
+    token = google_auth.get_token()
+    isValidToken = google_auth.verify_token(token)
+    if isValidToken:
+        user_email = google_auth.get_user_email(token)
+        req = request.get_json(force=True)
+        task = req["task"]
+        collection.insert_one({'task': task, 'complete': False, 'user_email': user_email})
+        return jsonify({'status': True, 'message': 'task added successfully'}),201
     return google_auth.unauthenticated()
 
 
-@app.route('/delete/<id>', methods = ['DELETE'])
-def find_todo(id):
-    if google_auth.is_logged_in():
+#get all Tasks, Auth User 
+@app.route('/todo/tasks', methods = ['GET']) 
+def get_all_tasks():
+    token = google_auth.get_token()
+    isValidToken = google_auth.verify_token(token)
+    if isValidToken:
+        user_email = google_auth.get_user_email(token)
+        data = []
+        for doc in collection.find({"user_email": {"$eq": user_email }}):
+            doc['_id'] = str(doc['_id']) 
+            data.append(doc)
+        if len(data):
+            return jsonify(data)
+        else:
+            return jsonify({})    
+    return google_auth.unauthenticated()
+
+
+#delete todo
+@app.route('/todo/delete/<id>', methods = ['DELETE'])
+def delete_a_task(id):
+    token = google_auth.get_token()
+    isValidToken = google_auth.verify_token(token)
+    if isValidToken:
         responseMsg ={'status': False, 'message': 'Invalid todo id is supplied'}
         try:
             todo = collection.find_one({'_id': ObjectId(id)})
@@ -47,3 +71,5 @@ def find_todo(id):
         except TypeError: 
             return jsonify(responseMsg) 
     return google_auth.unauthenticated()         
+
+

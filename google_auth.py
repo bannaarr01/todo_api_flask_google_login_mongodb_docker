@@ -110,6 +110,10 @@ def verify_token(token):
     except ValueError: #if token is Invalid
         return False
 
+def get_user_email(token):
+    user = id_token.verify_oauth2_token(token, requests.Request(), CLIENT_ID)
+    return user['email']
+
 
 @app.route('/logout', methods=['POST'])
 def logout():
