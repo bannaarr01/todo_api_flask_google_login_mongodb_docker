@@ -91,3 +91,5 @@ def delete_a_task(id):
             return jsonify(responseMsg) 
     return google_auth.unauthenticated()         
 
+if __name__ == "__main__":
+  app.run(host='0.0.0.0')
