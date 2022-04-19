@@ -7,6 +7,8 @@ services:
       - 8040:8040
     depends_on:
       - mongodb
+    environment:
+      - ENV=Development
     volumes:
       - .:/usr/src/app
   mongodb:
