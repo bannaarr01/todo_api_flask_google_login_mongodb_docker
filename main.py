@@ -30,7 +30,7 @@ def add_a_task():
         user_email = google_auth.get_user_email(token)
         req = request.get_json(force=True)
         task = req["task"]
-        collection.insert_one({'task': task, 'complete': False, 'user_email': user_email})
+        collection.insert_one({'task': task, 'completed': False, 'user_email': user_email})
         return jsonify({'status': True, 'message': 'task added successfully'}),201
     return google_auth.unauthenticated()
 
@@ -52,6 +52,25 @@ def get_all_tasks():
             return jsonify({})    
     return google_auth.unauthenticated()
 
+
+#update todo 
+@app.route('/todo/update/<id>', methods = ['PATCH']) 
+def update_a_task(id):
+    token = google_auth.get_token()
+    isValidToken = google_auth.verify_token(token)
+    if isValidToken:
+        responseMsg ={'status': False, 'message': 'Invalid todo id is supplied'}
+        try:
+            todo = collection.find_one({'_id': ObjectId(id)})
+            have_list = True if len(list(todo)) else False;
+            if have_list:
+                collection.update_one({'_id': ObjectId(id)}, {'$set': {'completed': True}})
+                return jsonify({'status': True, 'message': 'updated'})
+        except bson.errors.InvalidId:
+            return jsonify(responseMsg)
+        except TypeError: 
+            return jsonify(responseMsg) 
+    return google_auth.unauthenticated()
 
 #delete todo
 @app.route('/todo/delete/<id>', methods = ['DELETE'])
