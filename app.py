@@ -96,4 +96,4 @@ def delete_a_task(id):
 
 # cli = FlaskGroup(app)
 if __name__ == '__main__':
-    app.run(port=8084)
+    app.run(host='0.0.0.0',port=8084)
