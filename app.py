@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# app.py
+#from flask.cli import FlaskGroup
 from flask import Flask,jsonify,request
 import os
 import google_auth
@@ -15,7 +18,7 @@ MONGO_URL = os.environ.get('_MONGO_URL_')
 DB_NAME = os.environ.get('_DB_NAME_')
 
 client = MongoClient(MONGO_URL, tlsCAFile=certifi.where())
-db = client[DB_NAME]
+db = client[str(DB_NAME)]
 collection = db["tasks"]
 
 
@@ -90,3 +93,7 @@ def delete_a_task(id):
         except TypeError: 
             return jsonify(responseMsg) 
     return google_auth.unauthenticated()         
+
+# cli = FlaskGroup(app)
+if __name__ == '__main__':
+    app.run(port=8084)
