@@ -1,15 +1,20 @@
 import functools
 import os
 import flask
-from flask import jsonify
+from flask import jsonify,request
 from authlib.client import OAuth2Session
 import google.oauth2.credentials
 import googleapiclient.discovery
+
+#verify token
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 
 AUTH_ACCESS_TOKEN_URL = 'https://www.googleapis.com/oauth2/v4/token'
 AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&prompt=consent'
 AUTH_SCOPE ='openid email profile'
+TOKEN_REVOKE_URL = 'https://accounts.google.com/o/oauth2/revoke?token='
 
 AUTH_CALLBACK_URL = os.environ.get("_AUTH_CALLBACK_URL", default=False)
 BASE_URL = os.environ.get("_BASE_URL", default=False)
@@ -25,34 +30,13 @@ app = flask.Blueprint('google_auth', __name__)
 def is_logged_in():
     return True if AUTH_TOKEN_KEY in flask.session else False
 
+#if not authenticated
 def unauthenticated():
     responseMsg = {
         "status": False,
         "message": "Unauthenticated"
     }
     return jsonify(responseMsg)
-
-def build_credentials():
-    if not is_logged_in():
-        return unauthenticated()
-
-    oauth2_tokens = flask.session[AUTH_TOKEN_KEY]
-    
-    return google.oauth2.credentials.Credentials(
-                oauth2_tokens['access_token'],
-                refresh_token=oauth2_tokens['refresh_token'],
-                client_id=CLIENT_ID,
-                client_secret=CLIENT_SECRET,
-                token_uri=AUTH_ACCESS_TOKEN_URL)
-
-
-#get logged in userInfo
-def get_user_info():
-    credentials = build_credentials()
-    oauth2_client = googleapiclient.discovery.build(
-                        'oauth2', 'v2',
-                        credentials=credentials)
-    return oauth2_client.userinfo().get().execute()
 
 
 def no_cache(view):
@@ -67,6 +51,7 @@ def no_cache(view):
     return functools.update_wrapper(no_cache_impl, view)
 
 
+#login
 @app.route('/google/login')
 @no_cache
 def login():
@@ -101,17 +86,35 @@ def google_auth_redirect():
                         authorization_response=flask.request.url)
 
     flask.session[AUTH_TOKEN_KEY] = oauth2_tokens
-    return jsonify(get_user_info())
+    return jsonify(flask.session)
 
-#logout
-@app.route('/google/logout')
-@no_cache
+
+#get Token
+def get_token():
+    hasAuthHeader = 'Authorization' in request.headers
+    if hasAuthHeader:
+        try:
+            bearer = request.headers.get('Authorization')
+            token = bearer.split()[1]
+            return token
+        except: #if indexOutOfRange when Bearer and token not well supplied
+            return ''
+    return '' #if request has no Authorization header
+
+
+#verify token
+def verify_token(token):
+    try:
+        id_token.verify_oauth2_token(token, requests.Request(), CLIENT_ID)
+        return True
+    except ValueError: #if token is Invalid
+        return False
+
+
+@app.route('/logout', methods=['POST'])
 def logout():
-    if is_logged_in():
-        flask.session.pop(AUTH_TOKEN_KEY, None)
-        flask.session.pop(AUTH_STATE_KEY, None)
-        responseMsg = {"status": True, "message": "You have successfully logged out!"}
-        return jsonify(responseMsg) 
-    else: 
-        return unauthenticated()  
+    token = get_token()
+    return flask.redirect(f'{TOKEN_REVOKE_URL}{token}', code=302)
+
+
     
