@@ -73,18 +73,16 @@ def google_auth_redirect():
     req_state = flask.request.args.get('state', default=None, type=None)
 
     if req_state != flask.session[AUTH_STATE_KEY]:
-        response = flask.make_response('Invalid state parameter', 401)
+        response = flask.make_response(jsonify({'status':False,'message':'Invalid state parameter'}), 401)
         return response
     
     session = OAuth2Session(CLIENT_ID, CLIENT_SECRET,
                             scope=AUTH_SCOPE,
                             state=flask.session[AUTH_STATE_KEY],
                             redirect_uri=AUTH_CALLBACK_URL)
-
     oauth2_tokens = session.fetch_access_token(
                         AUTH_ACCESS_TOKEN_URL,            
                         authorization_response=flask.request.url)
-
     flask.session[AUTH_TOKEN_KEY] = oauth2_tokens
     return jsonify(flask.session)
 
@@ -115,10 +113,12 @@ def get_user_email(token):
     return user['email']
 
 
-@app.route('/logout', methods=['POST'])
-def logout():
-    token = get_token()
-    return flask.redirect(f'{TOKEN_REVOKE_URL}{token}', code=302)
+# @app.route('/logout', methods=['POST'])
+# def logout(): 
+#     token = get_token() #refresh token
+#     return flask.redirect(f'{TOKEN_REVOKE_URL}{token}', code=302) 
+# #to Revoke 
+    
 
 
     
