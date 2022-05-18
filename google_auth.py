@@ -100,6 +100,7 @@ def get_token():
 #verify token
 def verify_token(token):
     try:
+        # import pdb; pdb.set_trace()
         id_token.verify_oauth2_token(token, requests.Request(), CLIENT_ID)
         return True
     except ValueError: #if token is Invalid

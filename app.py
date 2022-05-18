@@ -17,6 +17,7 @@ app.register_blueprint(google_auth.app)
 MONGO_URL = os.environ.get('_MONGO_URL_')
 DB_NAME = os.environ.get('_DB_NAME_')
 
+# print(MONGO_URL)
 client = MongoClient(MONGO_URL, tlsCAFile=certifi.where())
 db = client[str(DB_NAME)]
 collection = db["tasks"]
@@ -27,8 +28,9 @@ collection = db["tasks"]
 #add todo
 @app.route('/todo/add', methods = ['POST']) 
 def add_a_task():
-    token = google_auth.get_token()
-    isValidToken = google_auth.verify_token(token)
+    # token = google_auth.get_token()
+    # isValidToken = google_auth.verify_token(token)
+    token, isValidToken =refactoring()
     if isValidToken:
         user_email = google_auth.get_user_email(token)
         req = request.get_json(force=True)
@@ -37,12 +39,17 @@ def add_a_task():
         return jsonify({'status': True, 'message': 'task added successfully'}),201
     return google_auth.unauthenticated()
 
+def refactoring():
+    token = google_auth.get_token()
+    isValidToken = google_auth.verify_token(token)
+    return token,isValidToken
 
 #get all Tasks, Auth User 
 @app.route('/todo/tasks', methods = ['GET']) 
 def get_all_tasks():
-    token = google_auth.get_token()
-    isValidToken = google_auth.verify_token(token)
+    # token = google_auth.get_token()
+    # isValidToken = google_auth.verify_token(token)
+    token, isValidToken =refactoring()
     if isValidToken:
         user_email = google_auth.get_user_email(token)
         data = []
@@ -59,20 +66,21 @@ def get_all_tasks():
 #update todo 
 @app.route('/todo/update/<id>', methods = ['PATCH']) 
 def update_a_task(id):
-    token = google_auth.get_token()
-    isValidToken = google_auth.verify_token(token)
+    # token = google_auth.get_token()
+    # isValidToken = google_auth.verify_token(token)
+    _, isValidToken =refactoring()
     if isValidToken:
-        responseMsg ={'status': False, 'message': 'Invalid todo id is supplied'}
-        try:
+        # responseMsg ={'status': False, 'message': 'Invalid todo id is supplied'}
+        try:#use findnupdate
             todo = collection.find_one({'_id': ObjectId(id)})
             have_list = True if len(list(todo)) else False;
             if have_list:
                 collection.update_one({'_id': ObjectId(id)}, {'$set': {'completed': True}})
                 return jsonify({'status': True, 'message': 'updated'})
         except bson.errors.InvalidId:
-            return jsonify(responseMsg)
+            return jsonify({'status': False, 'message': 'Invalid todo id is supplied'})
         except TypeError: 
-            return jsonify(responseMsg) 
+            return jsonify({'status': False, 'message': 'An error has occured'}) 
     return google_auth.unauthenticated()
 
 #delete todo
@@ -80,16 +88,16 @@ def update_a_task(id):
 def delete_a_task(id):
     token = google_auth.get_token()
     isValidToken = google_auth.verify_token(token)
-    if isValidToken:
+    if isValidToken:#use findndelete OR delete directly n use status
         responseMsg ={'status': False, 'message': 'Invalid todo id is supplied'}
         try:
             todo = collection.find_one({'_id': ObjectId(id)})
-            have_list = True if len(list(todo)) else False;
-            if have_list:
+            # have_list = True if len(list(todo)) else False;
+            if len(list(todo)):
                 collection.delete_one({'_id': ObjectId(id)})
                 return jsonify({'status': True, 'message': 'deleted'})
         except bson.errors.InvalidId:
-            return jsonify(responseMsg)
+            return jsonify(responseMsg) #
         except TypeError: 
             return jsonify(responseMsg) 
     return google_auth.unauthenticated()         

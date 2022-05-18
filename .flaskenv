@@ -1,0 +1,1 @@
+export _FLASK_SECRET_KEY=todo-api-cognixus-backend-candidate-assessment

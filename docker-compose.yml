@@ -4,7 +4,7 @@ services:
     container_name: todo-list-server
     build: .
     ports:
-      - "8080:8040"
+      - "8080:8084"
     depends_on:
       - mongodb
     environment:
